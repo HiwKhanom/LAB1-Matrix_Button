@@ -56,6 +56,15 @@ static void MX_USART2_UART_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+void MatrixButton();
+
+uint16_t L[4] = {GPIO_PIN_10, GPIO_PIN_12, GPIO_PIN_13, GPIO_PIN_14}; //PC
+uint16_t R[4] = {GPIO_PIN_5, GPIO_PIN_6, GPIO_PIN_8, GPIO_PIN_9}; //PB
+
+uint8_t columns[4] = {0b1111, 0b1111, 0b1111, 0b1111};
+
+uint16_t timeStamp = 500;
+
 /* USER CODE END 0 */
 
 /**
@@ -97,11 +106,29 @@ int main(void)
   {
     /* USER CODE END WHILE */
 
+	  if(HAL_GetTick() > timeStamp){
+		  MatrixButton();
+		  timeStamp += 500;
+	  }
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
 }
 
+void MatrixButton(){
+	//init OpenDrain
+	for(uint8_t init = 0; init <= 3; init++){
+		HAL_GPIO_WritePin(GPIOB, R[init], GPIO_PIN_SET);
+	}
+
+
+	for(uint8_t col = 0; col <= 3; col++){
+		HAL_GPIO_WritePin(GPIOB, R[col], GPIO_PIN_RESET);
+		for(uint8_t row = 0; row <= 3; row++){
+			columns[col] = (columns[col] << 1) | HAL_GPIO_ReadPin(GPIOC, L[row]);
+		}
+	}
+}
 /**
   * @brief System Clock Configuration
   * @retval None
