@@ -49,12 +49,16 @@ typedef struct _PortPin {
 
 //declare PortPin R,L
 PortPin R[4] = { { GPIOA, GPIO_PIN_10 }, { GPIOB, GPIO_PIN_3 }, { GPIOB,
-		GPIO_PIN_5 }, { GPIOB, GPIO_PIN_4 } };
+GPIO_PIN_5 }, { GPIOB, GPIO_PIN_4 } };
 
 PortPin L[4] = { { GPIOA, GPIO_PIN_9 }, { GPIOC, GPIO_PIN_7 }, { GPIOB,
-		GPIO_PIN_6 }, { GPIOA, GPIO_PIN_7 } };
+GPIO_PIN_6 }, { GPIOA, GPIO_PIN_7 } };
 
-uint16_t ButtonMatrix = 0;
+long ButtonMatrix = 0;
+
+uint16_t PreButtonMatrix = 0;
+uint16_t StudentID[12] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+uint16_t digitStudentID = 1;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -62,7 +66,10 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN PFP */
+
 void ReadMatrixButton_1Row();
+void checkStudentID(uint16_t MatrixButton);
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -106,13 +113,21 @@ int main(void) {
 	/* USER CODE BEGIN WHILE */
 	while (1) {
 		/* USER CODE END WHILE */
+
+		/* USER CODE BEGIN 3 */
+
 		static uint32_t timestamp = 0;
 		if (HAL_GetTick() >= timestamp) {
 			timestamp = HAL_GetTick() + 10;
 			ReadMatrixButton_1Row();
 
+			if (PreButtonMatrix == 0 && ButtonMatrix > 0) {
+				checkStudentID(ButtonMatrix);
+			}
+
 		}
-		/* USER CODE BEGIN 3 */
+
+		PreButtonMatrix = ButtonMatrix;
 	}
 	/* USER CODE END 3 */
 }
@@ -259,23 +274,18 @@ static void MX_GPIO_Init(void) {
 }
 
 /* USER CODE BEGIN 4 */
-void ReadMatrixButton_1Row()
-{
+void ReadMatrixButton_1Row() {
 	//
 	static uint8_t X = 0;
 
 	//READ L1-L4
 	register int i;
-	for(i=0;i<4;i++)
-	{
-		if(HAL_GPIO_ReadPin(L[i].PORT, L[i].PIN))
-		{
-			ButtonMatrix &= ~(1<<(X*4+i));
+	for (i = 0; i < 4; i++) {
+		if (HAL_GPIO_ReadPin(L[i].PORT, L[i].PIN)) {
+			ButtonMatrix &= ~(1 << (X * 4 + i));
 
-		}
-		else
-		{
-			ButtonMatrix |= 1<<(X*4+i);
+		} else {
+			ButtonMatrix |= 1 << (X * 4 + i);
 
 		}
 
@@ -283,10 +293,217 @@ void ReadMatrixButton_1Row()
 	//SET RX
 	HAL_GPIO_WritePin(R[X].PORT, R[X].PIN, 1);
 	//RESET RX+1%4
-	HAL_GPIO_WritePin(R[(X+1)%4].PORT, R[(X+1)%4].PIN, 0);
+	HAL_GPIO_WritePin(R[(X + 1) % 4].PORT, R[(X + 1) % 4].PIN, 0);
 	X++;
-	X%=4;
+	X %= 4;
 }
+
+// 6 = 10000000000000 : 8192
+// 4 = 10 : 2
+// 3 = 1000000000000000 : -32768
+// 0 = 100 : 4
+// 5 = 100000 : 32
+// 9 = 1000000000000 : 4096
+// clear = 100000000 : 256
+// ok = 10000000000 : 1024
+
+void checkStudentID(uint16_t MatrixButton) {
+	//static uint16_t PredigitStudentID = 1;
+
+	switch (digitStudentID) {
+	case 1:
+		if (MatrixButton == 8192) {
+			StudentID[digitStudentID - 1] = 6;
+			digitStudentID = 2;
+		} else if (MatrixButton == 256) {
+			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, RESET);
+			for (uint8_t i = 0; i < 12; i++) {
+				StudentID[i] = 0;
+			}
+			digitStudentID = 1;
+		} else {
+			StudentID[digitStudentID - 1] = 13;
+			digitStudentID = 13;
+		}
+		break;
+	case 2:
+		if (MatrixButton == 2) {
+			StudentID[digitStudentID - 1] = 4;
+			digitStudentID = 3;
+		} else if (MatrixButton == 256) {
+			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, RESET);
+			for (uint8_t i = 0; i < 12; i++) {
+				StudentID[i] = 0;
+			}
+			digitStudentID = 1;
+		} else {
+			StudentID[digitStudentID - 1] = 13;
+			digitStudentID = 13;
+		}
+		break;
+	case 3:
+		if (MatrixButton == 32768) {
+			StudentID[digitStudentID - 1] = 3;
+			digitStudentID = 4;
+		} else if (MatrixButton == 256) {
+			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, RESET);
+			for (uint8_t i = 0; i < 12; i++) {
+				StudentID[i] = 0;
+			}
+			digitStudentID = 1;
+		} else {
+			StudentID[digitStudentID - 1] = 13;
+			digitStudentID = 13;
+		}
+		break;
+	case 4:
+		if (MatrixButton == 2) {
+			StudentID[digitStudentID - 1] = 4;
+			digitStudentID = 5;
+		} else if (MatrixButton == 256) {
+			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, RESET);
+			for (uint8_t i = 0; i < 12; i++) {
+				StudentID[i] = 0;
+			}
+			digitStudentID = 1;
+		} else {
+			StudentID[digitStudentID - 1] = 13;
+			digitStudentID = 13;
+		}
+		break;
+	case 5:
+		if (MatrixButton == 4) {
+			StudentID[digitStudentID - 1] = 0;
+			digitStudentID = 6;
+		} else if (MatrixButton == 256) {
+			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, RESET);
+			for (uint8_t i = 0; i < 12; i++) {
+				StudentID[i] = 0;
+			}
+			digitStudentID = 1;
+		} else {
+			StudentID[digitStudentID - 1] = 13;
+			digitStudentID = 13;
+		}
+		break;
+	case 6:
+		if (MatrixButton == 32) {
+			StudentID[digitStudentID - 1] = 5;
+			digitStudentID = 7;
+		} else if (MatrixButton == 256) {
+			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, RESET);
+			for (uint8_t i = 0; i < 12; i++) {
+				StudentID[i] = 0;
+			}
+			digitStudentID = 1;
+		} else {
+			StudentID[digitStudentID - 1] = 13;
+			digitStudentID = 13;
+		}
+		break;
+	case 7:
+		if (MatrixButton == 4) {
+			StudentID[digitStudentID - 1] = 0;
+			digitStudentID = 8;
+		} else if (MatrixButton == 256) {
+			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, RESET);
+			for (uint8_t i = 0; i < 12; i++) {
+				StudentID[i] = 0;
+			}
+			digitStudentID = 1;
+		} else {
+			StudentID[digitStudentID - 1] = 13;
+			digitStudentID = 13;
+		}
+		break;
+	case 8:
+		if (MatrixButton == 4) {
+			StudentID[digitStudentID - 1] = 0;
+			digitStudentID = 9;
+		} else if (MatrixButton == 256) {
+			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, RESET);
+			for (uint8_t i = 0; i < 12; i++) {
+				StudentID[i] = 0;
+			}
+			digitStudentID = 1;
+		} else {
+			StudentID[digitStudentID - 1] = 13;
+			digitStudentID = 13;
+		}
+		break;
+	case 9:
+		if (MatrixButton == 4) {
+			StudentID[digitStudentID - 1] = 0;
+			digitStudentID = 10;
+		} else if (MatrixButton == 256) {
+			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, RESET);
+			for (uint8_t i = 0; i < 12; i++) {
+				StudentID[i] = 0;
+			}
+			digitStudentID = 1;
+		} else {
+			StudentID[digitStudentID - 1] = 13;
+			digitStudentID = 13;
+		}
+		break;
+	case 10:
+		if (MatrixButton == 32768) {
+			StudentID[digitStudentID - 1] = 3;
+			digitStudentID = 11;
+		} else if (MatrixButton == 256) {
+			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, RESET);
+			for (uint8_t i = 0; i < 12; i++) {
+				StudentID[i] = 0;
+			}
+			digitStudentID = 1;
+		} else {
+			StudentID[digitStudentID - 1] = 13;
+			digitStudentID = 13;
+		}
+		break;
+	case 11:
+		if (MatrixButton == 4096) {
+			StudentID[digitStudentID - 1] = 9;
+			digitStudentID = 12;
+		} else if (MatrixButton == 256) {
+			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, RESET);
+			for (uint8_t i = 0; i < 12; i++) {
+				StudentID[i] = 0;
+			}
+			digitStudentID = 1;
+		} else {
+			StudentID[digitStudentID - 1] = 13;
+			digitStudentID = 13;
+		}
+		break;
+	case 12: // press OK
+		if (MatrixButton == 1024) {
+			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, SET);
+			digitStudentID = 13;
+		} else if (MatrixButton == 256) {
+			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, RESET);
+			for (uint8_t i = 0; i < 12; i++) {
+				StudentID[i] = 0;
+			}
+			digitStudentID = 1;
+		} else {
+			StudentID[digitStudentID - 1] = 13;
+			digitStudentID = 13;
+		}
+		break;
+	case 13: // press Clear
+		if (MatrixButton == 256) {
+			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, RESET);
+			for (uint8_t i = 0; i < 12; i++) {
+				StudentID[i] = 0;
+			}
+			digitStudentID = 1;
+		}
+		break;
+	}
+
+}
+
 /* USER CODE END 4 */
 
 /**
