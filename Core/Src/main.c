@@ -54,9 +54,9 @@ GPIO_PIN_5 }, { GPIOB, GPIO_PIN_4 } };
 PortPin L[4] = { { GPIOA, GPIO_PIN_9 }, { GPIOC, GPIO_PIN_7 }, { GPIOB,
 GPIO_PIN_6 }, { GPIOA, GPIO_PIN_7 } };
 
-long ButtonMatrix = 0;
+uint32_t ButtonMatrix = 0;
 
-uint16_t PreButtonMatrix = 0;
+uint32_t PreButtonMatrix = 0;
 uint16_t StudentID[12] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 uint16_t digitStudentID = 1;
 /* USER CODE END PV */
